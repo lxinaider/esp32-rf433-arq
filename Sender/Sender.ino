@@ -22,7 +22,8 @@ const uint8_t custom_char[] = {
   0xFE, 0x00, 0x0A, 0x1F, 0x1F, 0x0E, 0x04, 0x00, 0x00
 };
 
-#define MSG_COUNT (sizeof(messages) / sizeof(messages[0])) + 1  // +1 para o frame de caractere customizado
+#define MSG_COUNT (sizeof(messages) / sizeof(messages[0]))  // = 8, só strings
+#define TOTAL_FRAMES (MSG_COUNT + 1)                        // = 9, inclui custom_char
 
 inline void txPowerOn() {
   digitalWrite(TX_VCC_PIN, HIGH);
@@ -71,7 +72,7 @@ bool waitForFlag(uint32_t timeoutMs = TIMEOUT_MS) {
     uint8_t dlo = dec4b6b(lo);
 
     if (dhi != 0xFF && dlo != 0xFF) {
-      if (((dhi << 4) | dlo) == 0x7E) return true;
+      if (((dhi << 4) | dlo) == FLAG_BYTE) return true;
     }
 
     hi = lo;
@@ -124,7 +125,7 @@ uint8_t receiveACK() {
   }
 
   // Lê data[16] + fcs para poder validar o CRC completo
-  Frame ack(0x7E, Type::ACK, seq, 0);
+  Frame ack(Type::ACK, seq, 0);
   for (uint8_t i = 0; i < sizeof(Frame::data); i++) {
     if (!read4b6b(ack.data[i])) {
       Serial.println("[TX] Timeout lendo payload do ACK");
@@ -175,12 +176,12 @@ void sendWithARQ(const Frame &frame) {
 Frame makeDataFrame(uint8_t msgIdx, uint8_t seq) {
   if (msgIdx < MSG_COUNT) {
     const char *msg = messages[msgIdx];
-    return Frame(0x7E, Type::DATA, seq,
+    return Frame(Type::DATA, seq,
                  (uint8_t)strlen(msg),
                  (const uint8_t *)msg);
   }
   // Último frame: caractere customizado para o LCD
-  return Frame(0x7E, Type::DATA, seq,
+  return Frame(Type::DATA, seq,
                (uint8_t)sizeof(custom_char),
                custom_char);
 }
@@ -204,13 +205,11 @@ void setup() {
 }
 
 void loop() {
-  // Envia MSG_COUNT mensagens de texto + 1 frame de caractere customizado
-  const uint8_t TOTAL = MSG_COUNT + 1;
   uint8_t seq = 0;
 
   Serial.println("[TX] Iniciando transmissão...");
 
-  for (uint8_t i = 0; i < TOTAL; i++) {
+  for (uint8_t i = 0; i < TOTAL_FRAMES; i++) {
     Frame frame = makeDataFrame(i, seq);
 
     sendWithARQ(frame);
@@ -219,7 +218,7 @@ void loop() {
   }
 
   Serial.println("[TX] Enviando END...");
-  Frame end_frame(0x7E, Type::END, 0, 0);
+  Frame end_frame(Type::END, 0, 0);
   sendFrame(end_frame);
   delay(200);
 

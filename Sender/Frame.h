@@ -1,6 +1,8 @@
 #ifndef FRAME_H
 #define FRAME_H
 
+#define FLAG_BYTE 0x7E
+
 #include <cstdint>
 #include <cstring>
 
@@ -21,16 +23,19 @@ struct Frame {
   uint8_t data[16];
   uint8_t fcs;
 
-  Frame(uint8_t flag, Type type, uint8_t seq, uint8_t len,
-        const uint8_t *payload = nullptr)
-      : flag(flag), type(type), seq(seq), len(len), fcs(0) {
+  Frame(Type type, uint8_t seq, uint8_t len, const uint8_t *payload = nullptr)
+      : flag(FLAG_BYTE), type(type), seq(seq), len(len), fcs(0) {
     memset(this->data, 0, sizeof(this->data));
     if (payload != nullptr && len > 0)
       memcpy(this->data, payload, len);
     this->fcs = crc8(*this);
   }
 
-  Frame(Type type) : flag(0x7E), type(type), seq(0), len(0), fcs(0) {
+  Frame(Type type) : flag(FLAG_BYTE), type(type), seq(0), len(0), fcs(0) {
+    memset(this->data, 0, sizeof(this->data));
+  }
+
+  Frame() : flag(FLAG_BYTE), type(Type::DATA), seq(0), len(0), fcs(0) {
     memset(this->data, 0, sizeof(this->data));
   }
 

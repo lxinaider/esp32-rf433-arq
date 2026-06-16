@@ -61,7 +61,7 @@ bool waitForFlag(uint32_t timeoutMs = TIMEOUT_MS) {
     uint8_t dlo = dec4b6b(lo);
 
     if (dhi != 0xFF && dlo != 0xFF) {
-      if (((dhi << 4) | dlo) == 0x7E) return true;
+      if (((dhi << 4) | dlo) == FLAG_BYTE) return true;
     }
 
     hi = lo;
@@ -72,9 +72,9 @@ bool waitForFlag(uint32_t timeoutMs = TIMEOUT_MS) {
 
 void sendACK(uint8_t seq) {
   delay(RX_SETTLE_MS);
-  xPowerOn();
+  txPowerOn();
 
-  Frame ack(0x7E, Type::ACK, seq, 0);
+  Frame ack(Type::ACK, seq, 0);
 
   for (uint8_t i = 0; i < PREAMBLE_BYTES_ACK; i++) {
     uint8_t hi, lo;
@@ -116,7 +116,7 @@ RecvResult receiveFrame(Frame &frame) {
     return RecvResult::DISCARD;
   }
 
-  frame = Frame(0x7E, (Type)type_raw, seq, len);
+  frame = Frame((Type)type_raw, seq, len);
 
   for (uint8_t i = 0; i < sizeof(Frame::data); i++) {
     if (!read4b6b(frame.data[i])) {

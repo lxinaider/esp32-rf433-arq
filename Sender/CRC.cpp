@@ -6,7 +6,7 @@ uint8_t crc8(const Frame &frame) {
   const uint8_t *bytes = frame.bytes();
 
   // Passa por type, seq, len e data (bytes 1-19) e fcs
-  for (uint8_t i = 1; i < 21; i++) {
+  for (uint8_t i = 1; i < 20; i++) {
     crc ^= bytes[i];
     for (int j = 0; j < 8; j++)
       // Algoritmo CRC com padrão 0x87
